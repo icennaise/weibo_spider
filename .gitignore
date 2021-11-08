@@ -1,0 +1,6 @@
+/cookies/
+*.log
+*.log*
+*weibo.com*
+main.py
+multi_thread_test.py
