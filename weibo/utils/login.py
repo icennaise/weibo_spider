@@ -1,13 +1,13 @@
 import pickle
 import time
+import requests
 
 #import login_config
 from weibo.utils.util import *
 from weibo.utils.login_config import *
 
 
-def login():
-    import requests
+def loginsess():
     sess = requests.session()
     sess.keep_alive = False
     try:
@@ -19,11 +19,40 @@ def login():
             print("cookies expire"
                   "cookies失效，请重新登录")
             return login_action(sess)
-        return local_cookies
+        return sess
     except Exception:
         print("load cookies failed"
               "加载cookies失败，请重新登录")
         return login_action(sess)
+
+def loginsesstest():
+    sess = requests.session()
+    sess.keep_alive = False
+    local_cookies = load_cookies()
+    sess.cookies.update(local_cookies)
+    print("load cookies succeed"
+          "加载cookies成功")
+    return sess
+
+
+
+def login():
+    sess = requests.session()
+    sess.keep_alive = False
+    try:
+        local_cookies = load_cookies()
+        sess.cookies.update(local_cookies)
+        print("load cookies succeed"
+              "加载cookies成功")
+        if not is_logined(sess):
+            print("cookies expire"
+                  "cookies失效，请重新登录")
+            return login_action(sess).cookies
+        return local_cookies
+    except Exception:
+        print("load cookies failed"
+              "加载cookies失败，请重新登录")
+        return login_action(sess).cookies
 
 def logintest():
     import requests
@@ -157,4 +186,4 @@ def _get_Cookies_By_CrossDomainUrlList(sess, crossDomainUrlList):
     for i in crossDomainUrlList:
         sess.get(i, headers=headers, proxies=proxies)
     _save_cookies(sess.cookies)
-    return sess.cookies
+    return sess

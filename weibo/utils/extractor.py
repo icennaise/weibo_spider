@@ -1,14 +1,29 @@
 import datetime
 import time
 
+import requests
+import scrapy
 from bs4 import BeautifulSoup
 
 from weibo.items import Weibo
+from weibo.utils.exception import WeiboNoResultException, BadSoupException
 from weibo.utils.log import logger
+
+def soupCheck(soup):
+    if weiboNoResult(soup):
+        raise WeiboNoResultException
+    content_div = soup.find(attrs={'id': 'pl_feedlist_index'})
+    if content_div is None:
+        raise BadSoupException
 
 
 def infoExtract(response, keyword):
-    soup = BeautifulSoup(response.body)
+    if isinstance(response,scrapy.Request):
+        soup = BeautifulSoup(response.body)
+    else:
+        soup = response
+    if weiboNoResult(soup):
+        return None
     content_div = soup.find(attrs={'id': 'pl_feedlist_index'})
     if content_div is None:
         return None
@@ -34,9 +49,13 @@ def textExtract(card):
 def cardInfoExtract(card):
     '''
     由于微博的搜索结果会出现异常
-    同一页的两个结果会
+    同一页的两个结果会出现极大差异，考虑使用requests进行流程控制。
     '''
     # 提取微博信息————————————————————————————————————————————————#
+    if not card:
+        print('解析出错')
+    if not card.has_attr('mid'):
+        print('解析出错？')
     mid = card['mid']
     # RawData.insertRawData(mid,card)
     time_tag_list = card.find_all(attrs={'class': "from"})
@@ -188,12 +207,14 @@ def parseTimeStr(time_list, seqid=str(time.time())):
 
 
 def getSoupPage(response):
-    if weiboNoResult(response):
+    if isinstance(response,scrapy.Request):
+        soup = BeautifulSoup(response.body)
+    else:
+        soup=response
+    if weiboNoResult(soup):
         return 0
-    soup = BeautifulSoup(response.body)
     contentDiv = soup.find(attrs={'id': 'pl_feedlist_index'})
     if contentDiv == None:
-        # time.sleep(60)
         return False
     pagesTag = contentDiv.find('span', attrs={'class': 'list'})
     if pagesTag == None:
@@ -204,7 +225,10 @@ def getSoupPage(response):
 
 
 def weiboNoResult(response):
-    soup = BeautifulSoup(response.body)
+    if isinstance(response,scrapy.Request):
+        soup = BeautifulSoup(response.body)
+    else:
+        soup=response
     return soup.find(attrs={'class': "card-no-result"}) is not None
 
 
